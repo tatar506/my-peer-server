@@ -3,249 +3,286 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>mirix | Private Messenger</title>
+    <title>mirix | NEXT-GEN Messenger</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --glass: rgba(255, 255, 255, 0.1);
-            --glass-border: rgba(255, 255, 255, 0.2);
-            --accent: #007AFF; 
-            --bg-gradient: linear-gradient(135deg, #1d1d1f 0%, #434343 100%);
+            --accent: #00f2ff;
+            --pink: #ff0077;
+            --glass: rgba(255, 255, 255, 0.03);
+            --glass-strong: rgba(255, 255, 255, 0.08);
+            --border: rgba(255, 255, 255, 0.15);
+            --bg: #050508;
         }
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
-
-        body, html {
-            margin: 0; padding: 0;
-            height: 100%; width: 100%;
-            font-family: 'Inter', sans-serif;
-            background: var(--bg-gradient);
-            background-attachment: fixed;
-            color: white;
-            overflow: hidden;
+        
+        body, html { 
+            margin: 0; padding: 0; height: 100%; width: 100%; 
+            font-family: 'Inter', sans-serif; background: var(--bg); 
+            color: white; overflow: hidden;
         }
 
-        /* ЭФФЕКТ СТЕКЛА */
-        .glass-panel {
+        /* АНИМИРОВАННЫЙ ФОН */
+        .bg-animate {
+            position: fixed; inset: 0; z-index: -1;
+            background: radial-gradient(circle at 20% 30%, #1a1a2e 0%, transparent 40%),
+                        radial-gradient(circle at 80% 70%, #2a1a2e 0%, transparent 40%);
+            filter: blur(80px); animation: pulseBg 10s infinite alternate;
+        }
+
+        @keyframes pulseBg {
+            from { transform: scale(1); } to { transform: scale(1.2); }
+        }
+
+        /* ЭФФЕКТ СТЕКЛА С ТЕКСТУРОЙ */
+        .glass {
             background: var(--glass);
-            backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px);
-            border: 1px solid var(--glass-border);
-            border-radius: 24px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid var(--border);
+            border-radius: 28px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            position: relative; overflow: hidden;
         }
 
-        /* ЭКРАН АВТОРИЗАЦИИ */
+        .glass::after {
+            content: ""; position: absolute; inset: 0;
+            background-image: url('https://www.transparenttextures.com/patterns/carbon-fibre.png');
+            opacity: 0.05; pointer-events: none;
+        }
+
+        /* ЭКРАН ВХОДА */
         #auth-screen {
-            position: fixed; inset: 0;
-            display: flex; align-items: center; justify-content: center;
-            z-index: 1000; background: var(--bg-gradient);
-            padding: 20px; transition: 0.5s ease;
+            position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+            z-index: 1000; padding: 20px; transition: 0.8s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .auth-card {
-            width: 100%; max-width: 400px;
-            padding: 40px; text-align: center;
+            width: 100%; max-width: 380px; padding: 50px 30px; text-align: center;
+            animation: cardPop 0.6s ease-out;
         }
 
-        .logo-img {
-            width: 100px; height: 100px;
-            border-radius: 24px; margin-bottom: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            object-fit: cover;
+        @keyframes cardPop {
+            0% { opacity: 0; transform: scale(0.8) translateY(30px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .logo-main {
+            width: 110px; height: 110px; border-radius: 30px; margin-bottom: 25px;
+            border: 2px solid var(--accent); box-shadow: 0 0 30px rgba(0, 242, 255, 0.3);
+            object-fit: cover; transition: 0.5s;
         }
 
         input {
-            width: 100%; background: rgba(255,255,255,0.05);
-            border: 1px solid var(--glass-border);
-            padding: 15px; border-radius: 12px;
-            color: white; margin-bottom: 15px;
-            font-size: 16px; transition: 0.3s;
+            width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--border);
+            padding: 16px; border-radius: 16px; color: white; margin-bottom: 15px;
+            font-size: 16px; transition: 0.3s; text-align: center;
         }
 
-        input:focus { border-color: var(--accent); background: rgba(255,255,255,0.1); }
+        input:focus { border-color: var(--accent); box-shadow: 0 0 15px rgba(0, 242, 255, 0.2); }
 
         .btn {
-            width: 100%; padding: 15px;
-            border-radius: 12px; border: none;
-            background: var(--accent); color: white;
-            font-size: 16px; font-weight: 600;
-            cursor: pointer; transition: 0.3s;
+            width: 100%; padding: 16px; border-radius: 16px; border: none;
+            background: linear-gradient(90deg, var(--accent), #007AFF);
+            color: white; font-size: 16px; font-weight: 600; cursor: pointer;
+            transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        /* ГЛАВНЫЙ ИНТЕРФЕЙС */
+        .btn:hover:not(:disabled) { transform: translateY(-3px); box-shadow: 0 5px 20px rgba(0, 242, 255, 0.4); }
+        .btn:active { transform: scale(0.95); }
+        .btn:disabled { opacity: 0.2; cursor: not-allowed; }
+
+        /* ОСНОВНОЙ ИНТЕРФЕЙС */
         #main-app {
-            display: grid;
-            grid-template-columns: 320px 1fr;
-            height: 100vh; width: 100vw;
-            padding: 20px; gap: 20px;
-            display: none;
+            display: grid; grid-template-columns: 320px 1fr;
+            height: 100vh; padding: 25px; gap: 25px; display: none;
+            animation: appSlide 0.8s ease;
         }
+
+        @keyframes appSlide { from { opacity: 0; filter: blur(10px); } to { opacity: 1; filter: blur(0); } }
 
         .sidebar { display: flex; flex-direction: column; gap: 20px; }
-
-        .profile-card { padding: 20px; display: flex; align-items: center; gap: 15px; }
-
+        
+        .profile { padding: 20px; display: flex; align-items: center; gap: 15px; }
         .avatar {
-            width: 50px; height: 50px; border-radius: 50%;
-            background: var(--accent); display: flex;
-            align-items: center; justify-content: center; font-weight: bold;
+            width: 55px; height: 55px; border-radius: 18px;
+            background: linear-gradient(45deg, var(--accent), var(--pink));
+            display: flex; align-items: center; justify-content: center;
+            font-weight: bold; font-size: 20px; text-shadow: 0 2px 5px rgba(0,0,0,0.3);
         }
 
-        .contact-list { flex: 1; overflow-y: auto; padding: 10px; }
-
+        .contact-list { flex: 1; overflow-y: auto; padding-right: 5px; }
         .contact-item {
-            padding: 15px; border-radius: 15px;
-            margin-bottom: 10px; cursor: pointer;
-            transition: 0.2s; display: flex; align-items: center; gap: 10px;
+            padding: 15px; border-radius: 20px; margin-bottom: 12px; cursor: pointer;
+            transition: 0.3s; display: flex; align-items: center; gap: 12px;
+            background: rgba(255,255,255,0.02);
         }
-        .contact-item:hover { background: rgba(255,255,255,0.1); }
+        .contact-item:hover { background: var(--glass-strong); transform: translateX(5px); }
+        .contact-item.active { background: var(--accent); color: black; }
 
+        /* ОКНО ЧАТА */
         .chat-window { display: flex; flex-direction: column; overflow: hidden; }
-
         .chat-header {
-            padding: 20px; display: flex; justify-content: space-between;
-            align-items: center; border-bottom: 1px solid var(--glass-border);
+            padding: 20px 30px; border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
         }
 
-        .messages {
-            flex: 1; padding: 20px; overflow-y: auto;
-            display: flex; flex-direction: column; gap: 15px;
-        }
+        .messages { flex: 1; padding: 25px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
 
         .bubble {
-            max-width: 75%; padding: 12px 18px; border-radius: 20px;
-            font-size: 15px; line-height: 1.4;
+            max-width: 70%; padding: 14px 20px; border-radius: 22px;
+            font-size: 15px; line-height: 1.4; animation: bubbleIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
         }
-        .me { align-self: flex-end; background: var(--accent); }
-        .them { align-self: flex-start; background: rgba(255,255,255,0.15); }
+        @keyframes bubbleIn { from { opacity: 0; transform: translateY(10px) scale(0.9); } }
 
-        .input-bar { padding: 20px; display: flex; gap: 10px; }
+        .me { align-self: flex-end; background: var(--accent); color: black; font-weight: 500; border-bottom-right-radius: 4px; box-shadow: 0 4px 15px rgba(0, 242, 255, 0.3); }
+        .them { align-self: flex-start; background: var(--glass-strong); border-bottom-left-radius: 4px; border: 1px solid var(--border); }
 
-        /* ЗВОНКИ */
-        #call-screen {
+        .input-bar { padding: 25px; display: flex; gap: 15px; background: rgba(0,0,0,0.2); }
+
+        /* ТЕКСТУРНЫЕ ИКОНКИ */
+        .icon-btn {
+            width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;
+            border-radius: 14px; background: var(--glass-strong); border: 1px solid var(--border);
+            cursor: pointer; transition: 0.3s;
+        }
+        .icon-btn:hover { background: white; color: black; transform: rotate(5deg); }
+
+        /* CALL OVERLAY */
+        #call-ui {
             position: fixed; inset: 0; background: rgba(0,0,0,0.95);
             z-index: 2000; display: none; flex-direction: column;
             align-items: center; justify-content: center;
         }
-        video { width: 90%; max-width: 900px; border-radius: 24px; border: 1px solid var(--glass-border); }
+        video { width: 85%; max-width: 1000px; border-radius: 30px; border: 1px solid var(--accent); box-shadow: 0 0 50px rgba(0, 242, 255, 0.2); }
 
+        /* МОБИЛЬНОСТЬ */
         @media (max-width: 768px) {
             #main-app { grid-template-columns: 1fr; padding: 10px; }
             .sidebar { display: none; }
+            .bubble { max-width: 85%; }
         }
     </style>
 </head>
 <body>
 
-    <!-- ЭКРАН ВХОДА -->
+    <div class="bg-animate"></div>
+
+    <!-- ВХОД -->
     <div id="auth-screen">
-        <div class="auth-card glass-panel">
-            <img src="https://i127.fastpic.org/thumb/2026/0211/d2/_d9953a8a86111b05c17efa7f3401c5d2.jpeg" class="logo-img" alt="mirix">
-            <h2>mirix Messenger</h2>
-            <input type="text" id="username" placeholder="Никнейм">
-            <input type="password" id="password" placeholder="Пароль">
-            <button class="btn" onclick="handleAuth()">Войти / Регистрация</button>
+        <div class="auth-card glass">
+            <img src="https://i127.fastpic.org/thumb/2026/0211/d2/_d9953a8a86111b05c17efa7f3401c5d2.jpeg" class="logo-main" alt="mirix">
+            <h2 style="letter-spacing: 2px; margin-bottom: 30px;">mirix</h2>
+            <input type="text" id="username" placeholder="Ваш Никнейм">
+            <button class="btn" onclick="handleAuth()">ВОЙТИ В СЕТЬ</button>
+            <p style="font-size: 10px; margin-top: 20px; opacity: 0.4; text-transform: uppercase; letter-spacing: 1px;">Powered by P2P Encryption</p>
         </div>
     </div>
 
-    <!-- ОСНОВНОЕ ПРИЛОЖЕНИЕ -->
+    <!-- МЕССЕНДЖЕР -->
     <div id="main-app">
-        <div class="sidebar glass-panel">
-            <div class="profile-card">
+        <div class="sidebar glass">
+            <div class="profile">
                 <div class="avatar" id="my-avatar">?</div>
                 <div>
-                    <div id="my-name" style="font-weight: 600;">Username</div>
-                    <div id="my-id-tag" style="font-size: 12px; opacity: 0.5;">ID: ....</div>
+                    <div id="my-name" style="font-weight: 600; font-size: 16px;">User</div>
+                    <div id="my-id-label" style="font-size: 11px; color: var(--accent); margin-top: 4px;">CONNECTING...</div>
                 </div>
             </div>
+            
             <div style="padding: 0 20px;">
-                <button class="btn" style="background: rgba(255,255,255,0.1);" onclick="addFriend()">+ Добавить друга</button>
+                <button class="btn" id="add-btn" style="background: var(--glass-strong); font-size: 11px;" onclick="addFriend()" disabled>+ ДОБАВИТЬ ДРУГА</button>
             </div>
-            <div class="contact-list" id="contact-list"></div>
+
+            <div class="contact-list" id="contacts"></div>
         </div>
 
-        <div class="chat-window glass-panel">
+        <div class="chat-window glass">
             <div class="chat-header">
-                <div id="chat-title" style="font-weight: 600;">Выберите чат</div>
-                <div style="display: flex; gap: 10px;">
-                    <button class="btn" style="width: 50px;" onclick="makeCall(false)">📞</button>
-                    <button class="btn" style="width: 50px; background: #34C759;" onclick="makeCall(true)">📺</button>
+                <div id="chat-target" style="font-weight: 600; letter-spacing: 1px;">mirix HUB</div>
+                <div style="display: flex; gap: 12px;">
+                    <div class="icon-btn" onclick="call(false)">☏</div>
+                    <div class="icon-btn" style="border-color: #34C759;" onclick="call(true)">🖵</div>
                 </div>
             </div>
-            <div class="messages" id="msg-container"></div>
+
+            <div class="messages" id="msg-box">
+                <div class="them bubble">Добро пожаловать. Добавьте друга по ID для начала защищенного сеанса.</div>
+            </div>
+
             <div class="input-bar">
-                <input type="text" id="msg-input" placeholder="Сообщение..." style="margin: 0;">
-                <button class="btn" style="width: 60px;" onclick="sendText()">></button>
+                <input type="text" id="msg-input" placeholder="Введите сообщение..." style="margin: 0; text-align: left; padding-left: 20px;">
+                <button class="btn" style="width: 80px;" onclick="send()">SEND</button>
             </div>
         </div>
     </div>
 
     <!-- ЗВОНОК -->
-    <div id="call-screen">
-        <video id="remote-video" autoplay playsinline></video>
-        <button class="btn" style="width: 200px; margin-top: 20px; background: #FF3B30;" onclick="endCall()">Завершить</button>
+    <div id="call-ui">
+        <video id="v-remote" autoplay playsinline></video>
+        <button class="btn" style="width: 220px; margin-top: 40px; background: var(--pink);" onclick="hangup()">ЗАВЕРШИТЬ</button>
     </div>
 
 <script>
     /************************************************************/
-    /*  НАСТРОЙКИ СЕРВЕРА (ВСТАВЬ СВОЙ АДРЕС ТУТ)               */
+    /*  СЕРВЕРНАЯ КОНФИГУРАЦИЯ                                  */
     /************************************************************/
-    const RENDER_HOST = 'my-peer-server-cvoj.onrender.com'; 
-    const RENDER_PATH = '/myapp'; // Путь, который ты указал в package.json на Render
+    const CONFIG = {
+        host: 'my-peer-server-cvoj.onrender.com',
+        path: '/myapp',
+        port: 443,
+        secure: true
+    };
     /************************************************************/
 
     let peer, myId, currentUser;
     let friends = JSON.parse(localStorage.getItem('mirix_friends') || '[]');
-    let activeChatId = null;
+    let activeId = null;
     let localStream, currentCall;
 
-    // Вход
     function handleAuth() {
         const name = document.getElementById('username').value;
-        if (name.length < 2) return alert("Введите имя");
+        if(name.length < 2) return alert("Имя слишком короткое");
         currentUser = { name };
-        document.getElementById('auth-screen').style.display = 'none';
+        document.getElementById('auth-screen').style.opacity = '0';
+        document.getElementById('auth-screen').style.pointerEvents = 'none';
         document.getElementById('main-app').style.display = 'grid';
-        initPeer();
+        initNetwork();
     }
 
-    // Сеть
-    function initPeer() {
+    function initNetwork() {
         const sid = Math.floor(1000 + Math.random() * 9000).toString();
-        peer = new Peer('mx-' + sid, {
-            host: RENDER_HOST, 
-            port: 443, 
-            path: RENDER_PATH, 
-            secure: true
-        });
+        peer = new Peer('mx-' + sid, CONFIG);
 
         peer.on('open', id => {
             myId = id.split('-')[1];
             document.getElementById('my-name').innerText = currentUser.name;
-            document.getElementById('my-id-tag').innerText = "ID: " + myId;
+            document.getElementById('my-id-label').innerText = "ID: " + myId;
             document.getElementById('my-avatar').innerText = currentUser.name[0].toUpperCase();
+            document.getElementById('add-btn').disabled = false;
             renderFriends();
         });
 
         peer.on('connection', c => {
             c.on('data', data => {
-                if(data.type === 'CHAT') appendMsg(data.text, 'them');
-                if(data.type === 'ADD') confirmFriend(data.from, data.name);
+                if(data.type === 'MSG') pushMsg(data.text, 'them');
+                if(data.type === 'ADD') reqFriend(data.from, data.name);
             });
         });
 
-        peer.on('call', call => {
-            if(confirm("Входящий вызов/трансляция. Принять?")) {
-                call.answer();
-                handleStream(call);
+        peer.on('call', c => {
+            if(confirm("Входящий вызов. Принять?")) {
+                c.answer();
+                handleStream(c);
             }
         });
     }
 
     function addFriend() {
-        const id = prompt("Введите ID друга:");
+        const id = prompt("Введите 4-значный ID друга:");
         if(!id) return;
         const c = peer.connect('mx-' + id);
         c.on('open', () => {
@@ -254,8 +291,8 @@
         });
     }
 
-    function confirmFriend(id, name) {
-        if(confirm(`Добавить ${name} (ID: ${id}) в друзья?`)) {
+    function reqFriend(id, name) {
+        if(confirm(`Игрок ${name} (ID: ${id}) хочет вас добавить. Принять?`)) {
             if(!friends.find(f => f.id === id)) {
                 friends.push({id, name});
                 localStorage.setItem('mirix_friends', JSON.stringify(friends));
@@ -265,57 +302,57 @@
     }
 
     function renderFriends() {
-        const list = document.getElementById('contact-list');
+        const list = document.getElementById('contacts');
         list.innerHTML = '';
         friends.forEach(f => {
             const el = document.createElement('div');
-            el.className = 'contact-item glass-panel';
-            el.innerHTML = `<div class="avatar" style="width:30px; height:30px; font-size:12px;">${f.name[0]}</div> <span>${f.name}</span>`;
-            el.onclick = () => { activeChatId = f.id; document.getElementById('chat-title').innerText = f.name; };
+            el.className = 'contact-item';
+            el.innerHTML = `<div class="avatar" style="width:35px; height:35px; font-size:14px;">${f.name[0]}</div> <span>${f.name}</span>`;
+            el.onclick = () => { activeId = f.id; document.getElementById('chat-target').innerText = f.name; };
             list.appendChild(el);
         });
     }
 
-    function sendText() {
+    function send() {
         const input = document.getElementById('msg-input');
-        if(!input.value || !activeChatId) return;
-        const c = peer.connect('mx-' + activeChatId);
+        if(!input.value || !activeId) return;
+        const c = peer.connect('mx-' + activeId);
         c.on('open', () => {
-            c.send({ type: 'CHAT', text: input.value });
-            appendMsg(input.value, 'me');
+            c.send({ type: 'MSG', text: input.value });
+            pushMsg(input.value, 'me');
             input.value = '';
         });
     }
 
-    function appendMsg(text, type) {
-        const container = document.getElementById('msg-container');
+    function pushMsg(text, type) {
+        const box = document.getElementById('msg-box');
         const div = document.createElement('div');
         div.className = `bubble ${type}`;
         div.innerText = text;
-        container.appendChild(div);
-        container.scrollTop = container.scrollHeight;
+        box.appendChild(div);
+        box.scrollTop = box.scrollHeight;
     }
 
-    async function makeCall(isScreen) {
-        if(!activeChatId) return;
+    async function call(isScreen) {
+        if(!activeId) return;
         try {
             localStream = isScreen ? 
                 await navigator.mediaDevices.getDisplayMedia({video:true}) : 
                 await navigator.mediaDevices.getUserMedia({audio:true});
-            const call = peer.call('mx-' + activeChatId, localStream);
-            handleStream(call);
-        } catch (e) { alert("Ошибка доступа"); }
+            const c = peer.call('mx-' + activeId, localStream);
+            handleStream(c);
+        } catch (e) { alert("Ошибка медиа"); }
     }
 
-    function handleStream(call) {
-        currentCall = call;
-        document.getElementById('call-screen').style.display = 'flex';
-        call.on('stream', rs => document.getElementById('remote-video').srcObject = rs);
+    function handleStream(c) {
+        currentCall = c;
+        document.getElementById('call-ui').style.display = 'flex';
+        c.on('stream', st => document.getElementById('v-remote').srcObject = st);
     }
 
-    function endCall() {
+    function hangup() {
         if(localStream) localStream.getTracks().forEach(t => t.stop());
-        document.getElementById('call-screen').style.display = 'none';
+        document.getElementById('call-ui').style.display = 'none';
     }
 </script>
 </body>
