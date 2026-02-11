@@ -1,7 +1,6 @@
 {
   "name": "mirix-server",
   "version": "1.0.0",
-  "description": "Mirix Server",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
