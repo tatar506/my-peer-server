@@ -8,69 +8,41 @@
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;600&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --neon: #00f2ff;
-            --pink: #ff0077;
-            --bg: #050508;
-        }
-
+        :root { --neon: #00f2ff; --pink: #ff0077; --bg: #050508; }
         body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: var(--bg); font-family: 'Inter', sans-serif; color: white; }
-        
         #game-container { position: absolute; inset: 0; z-index: 1; }
 
-        /* UI в стиле Glassmorphism */
-        .ui-overlay {
-            position: absolute; inset: 0; z-index: 10;
-            display: flex; align-items: center; justify-content: center;
-            pointer-events: none;
+        /* Дизайн Логотипа mirix */
+        .mirix-logo-container { margin-bottom: 20px; }
+        .mirix-symbol {
+            width: 80px; height: 80px; background: var(--bg);
+            border: 3px solid var(--neon); border-radius: 20px;
+            display: inline-flex; align-items: center; justify-content: center;
+            box-shadow: 0 0 20px var(--neon), inset 0 0 10px var(--neon);
+            position: relative;
+        }
+        .mirix-symbol::after {
+            content: "M"; color: var(--neon); font-size: 40px; font-weight: 800;
+            text-shadow: 0 0 10px var(--neon);
         }
 
+        /* Glassmorphism Меню */
+        .ui-overlay { position: absolute; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center; pointer-events: none; }
         .glass {
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 30px;
-            padding: 40px;
-            text-align: center;
-            pointer-events: auto;
-            width: 90%; max-width: 400px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 35px; padding: 40px;
+            text-align: center; pointer-events: auto; width: 90%; max-width: 400px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.6); animation: fadeIn 1s ease;
         }
 
-        .logo {
-            width: 100px; height: 100px; border-radius: 25px;
-            margin-bottom: 20px; border: 2px solid var(--neon);
-            box-shadow: 0 0 20px rgba(0, 242, 255, 0.2);
-        }
+        input { width: 100%; background: rgba(0,0,0,0.5); border: 1px solid var(--neon); padding: 15px; border-radius: 15px; color: white; margin-bottom: 20px; font-size: 16px; text-align: center; }
+        .btn { width: 100%; padding: 15px; border-radius: 15px; border: none; background: linear-gradient(90deg, var(--neon), var(--pink)); color: white; font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.3s; }
+        .btn:hover { transform: translateY(-3px); box-shadow: 0 10px 25px var(--neon); }
 
-        input {
-            width: 100%; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2);
-            padding: 15px; border-radius: 15px; color: white; margin-bottom: 20px;
-            font-size: 16px; text-align: center; outline: none;
-        }
+        #hud { position: absolute; top: 20px; left: 20px; z-index: 100; display: none; }
+        .stats { font-size: 10px; color: var(--neon); text-transform: uppercase; letter-spacing: 2px; }
 
-        .btn {
-            width: 100%; padding: 15px; border-radius: 15px; border: none;
-            background: linear-gradient(90deg, var(--neon), #007AFF);
-            color: white; font-size: 16px; font-weight: 600; cursor: pointer;
-            transition: 0.3s;
-        }
-
-        .btn:hover { transform: scale(1.05); box-shadow: 0 0 20px var(--neon); }
-
-        #hud {
-            position: absolute; top: 20px; left: 20px; z-index: 100;
-            display: none; pointer-events: none;
-        }
-
-        .stats { font-size: 12px; color: var(--neon); text-transform: uppercase; letter-spacing: 2px; }
-
-        /* Чат внутри паутины */
-        #web-chat {
-            position: absolute; bottom: 20px; left: 20px; width: 250px;
-            z-index: 100; display: none; pointer-events: auto;
-        }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
     </style>
 </head>
 <body>
@@ -78,86 +50,92 @@
     <div id="game-container"></div>
 
     <div id="hud">
-        <div class="stats">Сеть: <span id="peer-count">1</span> узлов</div>
-        <div id="my-name-display" style="font-weight: 600; margin-top: 5px;"></div>
+        <div class="stats">Узлы эфира: <span id="peer-count">1</span></div>
+        <div id="my-name-display" style="font-weight: 600; font-size: 14px; margin-top: 5px; color: var(--pink);"></div>
     </div>
 
     <div class="ui-overlay" id="auth-screen">
         <div class="glass">
-            <img src="https://i127.fastpic.org/thumb/2026/0211/d2/_d9953a8a86111b05c17efa7f3401c5d2.jpeg" class="logo">
-            <h2 style="margin: 0 0 20px 0; letter-spacing: 3px;">mirix</h2>
-            <input type="text" id="username" placeholder="Введите ваш ник">
-            <button class="btn" onclick="enterWeb()">ВОЙТИ В ПАУТИНУ</button>
+            <div class="mirix-logo-container">
+                <div class="mirix-symbol"></div>
+            </div>
+            <h1 style="margin: 0 0 10px 0; letter-spacing: 5px; font-weight: 800; color: #fff;">MIRIX</h1>
+            <p style="font-size: 12px; opacity: 0.5; margin-bottom: 25px;">AETHER NETWORK</p>
+            <input type="text" id="username" placeholder="Ваш псевдоним">
+            <button class="btn" onclick="enterWeb()">ПОДКЛЮЧИТЬСЯ</button>
         </div>
     </div>
 
     <script>
-        /** --- CONFIG --- **/
+        /************************************************************/
+        /*  КОНФИГУРАЦИЯ                                            */
+        /************************************************************/
         const RENDER_HOST = 'my-peer-server-cvoj.onrender.com';
         const RENDER_PATH = '/myapp';
+        /************************************************************/
 
         let peer, myId, currentUser;
-        let connections = {}; // Список активных соединений
-        let nodes = {}; // Спрайты узлов в Phaser
+        let nodes = {}; // Спрайты узлов
         let game, scene;
 
-        /** --- PHASER ENGINE (Визуализация паутины) --- **/
+        // Запоминаем имя
+        if(localStorage.getItem('mx_username')) {
+            document.getElementById('username').value = localStorage.getItem('mx_username');
+        }
+
         const phaserConfig = {
             type: Phaser.AUTO,
             parent: 'game-container',
-            width: window.innerWidth,
-            height: window.innerHeight,
+            width: window.innerWidth, height: window.innerHeight,
             backgroundColor: '#050508',
             transparent: true,
-            physics: {
-                default: 'arcade',
-                arcade: { gravity: { y: 0 } }
-            },
-            scene: { preload: preload, create: create, update: update }
+            physics: { default: 'arcade' },
+            scene: { create: create, update: update }
         };
-
-        function preload() {
-            this.load.image('node', 'https://cdn-icons-png.flaticon.com/512/594/594846.png'); // Светящаяся точка
-        }
 
         function create() {
             scene = this;
             this.webGraphics = this.add.graphics();
             
-            // Плавное движение камеры
-            this.cameras.main.setBackgroundColor('#050508');
+            // СОЗДАЕМ УЗЕЛ ОСНОВАТЕЛЯ (MIRIX FOUNDER)
+            // Он всегда в центре и всегда виден
+            createNode('founder', 'MIRIX CORE', window.innerWidth/2, window.innerHeight/2, true);
         }
 
         function update() {
             if (!this.webGraphics) return;
             this.webGraphics.clear();
             
-            // Рисуем линии паутины
-            this.webGraphics.lineStyle(1, 0x00f2ff, 0.2);
-            
             let activeNodes = Object.values(nodes);
             for (let i = 0; i < activeNodes.length; i++) {
                 for (let j = i + 1; j < activeNodes.length; j++) {
-                    let dist = Phaser.Math.Distance.Between(activeNodes[i].x, activeNodes[i].y, activeNodes[j].x, activeNodes[j].y);
-                    if (dist < 400) {
-                        this.webGraphics.lineStyle(1, 0x00f2ff, 1 - (dist / 400));
-                        this.webGraphics.lineBetween(activeNodes[i].x, activeNodes[i].y, activeNodes[j].x, activeNodes[j].y);
+                    let n1 = activeNodes[i];
+                    let n2 = activeNodes[j];
+                    let dist = Phaser.Math.Distance.Between(n1.x, n1.y, n2.x, n2.y);
+                    
+                    if (dist < 350) {
+                        let alpha = 1 - (dist / 350);
+                        this.webGraphics.lineStyle(2, 0x00f2ff, alpha);
+                        this.webGraphics.lineBetween(n1.x, n1.y, n2.x, n2.y);
                     }
                 }
             }
         }
 
-        /** --- NETWORK LOGIC (PeerJS) --- **/
         function enterWeb() {
             const name = document.getElementById('username').value;
             if (name.length < 2) return alert("Имя слишком короткое");
             
             currentUser = name;
-            document.getElementById('auth-screen').style.display = 'none';
-            document.getElementById('hud').style.display = 'block';
-            document.getElementById('my-name-display').innerText = name;
-
-            initPeer();
+            localStorage.setItem('mx_username', name);
+            
+            document.getElementById('auth-screen').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('auth-screen').style.display = 'none';
+                document.getElementById('hud').style.display = 'block';
+                document.getElementById('my-name-display').innerText = name;
+                initPeer();
+            }, 500);
         }
 
         function initPeer() {
@@ -168,52 +146,56 @@
 
             peer.on('open', id => {
                 myId = id;
-                createNode(myId, currentUser, true);
                 
-                // В реальном проекте здесь должен быть запрос к API за списком ID.
-                // Но мы используем "сканирование" или ручной ввод для теста.
-                // Для паутины мы будем рассылать сигнал всем знакомым.
-                console.log("Ваш узел создан в сети эфира.");
+                // ЗАПОМИНАЕМ МЕСТО (Координаты из памяти)
+                let savedX = localStorage.getItem('mx_pos_x') || Math.random() * window.innerWidth;
+                let savedY = localStorage.getItem('mx_pos_y') || Math.random() * window.innerHeight;
+                
+                createNode(myId, currentUser, savedX, savedY, false, true);
+                
+                // Авто-поиск других (имитация через интервал для теста P2P)
+                setInterval(broadcastMyData, 1000);
             });
 
             peer.on('connection', conn => {
                 conn.on('data', data => {
-                    if (data.type === 'NODE_DATA') {
+                    if (data.type === 'SYNC') {
                         updateOrCreateNode(data.id, data.name, data.x, data.y);
                     }
                 });
             });
         }
 
-        function createNode(id, name, isMe) {
-            let x = Math.random() * window.innerWidth;
-            let y = Math.random() * window.innerHeight;
-            
+        function createNode(id, name, x, y, isStatic = false, isMe = false) {
+            if (nodes[id]) return;
+
             let container = scene.add.container(x, y);
             
-            let dot = scene.add.circle(0, 0, 6, 0x00f2ff);
-            dot.setStrokeStyle(2, 0xffffff);
+            // Цвет узла (Основатель розовый, игроки голубые)
+            let color = isStatic ? 0xff0077 : 0x00f2ff;
+            let dot = scene.add.circle(0, 0, 8, color);
+            dot.setStrokeStyle(3, 0xffffff);
             
-            // Свечение
-            let glow = scene.add.circle(0, 0, 15, 0x00f2ff, 0.3);
-            
-            let label = scene.add.text(0, 15, name, { fontSize: '12px', fontStyle: 'bold' }).setOrigin(0.5);
+            let glow = scene.add.circle(0, 0, 20, color, 0.2);
+            let label = scene.add.text(0, 20, name, { 
+                fontSize: isStatic ? '14px' : '10px', 
+                fontStyle: 'bold',
+                fontFamily: 'Inter'
+            }).setOrigin(0.5);
             
             container.add([glow, dot, label]);
             
             if (isMe) {
-                // Делаем свой узел перетаскиваемым
-                dot.setInteractive(new Phaser.Geom.Circle(0, 0, 20), Phaser.Geom.Circle.Contains);
+                dot.setInteractive(new Phaser.Geom.Circle(0, 0, 30), Phaser.Geom.Circle.Contains);
                 scene.input.setDraggable(dot);
                 
                 scene.input.on('drag', (pointer, gameObject, dragX, dragY) => {
                     container.x = pointer.x;
                     container.y = pointer.y;
-                    broadcastPosition(container.x, container.y);
+                    // Сохраняем в память браузера
+                    localStorage.setItem('mx_pos_x', container.x);
+                    localStorage.setItem('mx_pos_y', container.y);
                 });
-
-                // Каждые 100мс шлем позицию всем
-                setInterval(() => broadcastPosition(container.x, container.y), 100);
             }
 
             nodes[id] = container;
@@ -222,37 +204,38 @@
 
         function updateOrCreateNode(id, name, x, y) {
             if (!nodes[id]) {
-                createNode(id, name, false);
+                createNode(id, name, x, y);
+            } else {
+                // Плавная интерполяция, чтобы не дергалось
+                scene.tweens.add({
+                    targets: nodes[id],
+                    x: x, y: y,
+                    duration: 200,
+                    ease: 'Power1'
+                });
             }
-            // Плавно перемещаем чужой узел
-            scene.tweens.add({
-                targets: nodes[id],
-                x: x, y: y,
-                duration: 100,
-                ease: 'Linear'
-            });
         }
 
-        function broadcastPosition(x, y) {
-            // В идеале тут нужен список всех ID из базы.
-            // Для теста мы можем использовать широковещание, если сервер поддерживает, 
-            // или подключаться к тем, кого знаем.
+        function broadcastMyData() {
+            if (!nodes[myId]) return;
+            
+            let myPos = nodes[myId];
+            let data = { type: 'SYNC', id: myId, name: currentUser, x: myPos.x, y: myPos.y };
+            
+            // Рассылаем всем активным соединениям
             Object.values(peer.connections).forEach(conns => {
-                conns.forEach(c => {
-                    if (c.open) c.send({ type: 'NODE_DATA', id: myId, name: currentUser, x: x, y: y });
-                });
+                conns.forEach(c => { if (c.open) c.send(data); });
             });
+            
+            // Имитация поиска новых (в реальной системе здесь нужен список ID с сервера)
+            // Для теста: можно вводить ID друга в консоль или добавить поле
         }
 
         function updateNodeCount() {
             document.getElementById('peer-count').innerText = Object.keys(nodes).length;
         }
 
-        function startGame() {
-            game = new Phaser.Game(phaserConfig);
-        }
-
-        window.onload = startGame;
+        window.onload = () => { game = new Phaser.Game(phaserConfig); };
         window.onresize = () => { if(game) game.scale.resize(window.innerWidth, window.innerHeight); };
 
     </script>
