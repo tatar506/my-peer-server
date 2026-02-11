@@ -1,53 +1,65 @@
 const express = require('express');
-const { PeerServer } = require('peer');
 const cors = require('cors');
-const bodyParser = require('body-parser');
+const { ExpressPeerServer } = require('peer');
 
 const app = express();
-app.use(cors());
-app.use(bodyParser.json());
-
 const port = process.env.PORT || 9000;
 
-// Хранилище всех узлов паутины прямо в памяти сервера
+// Разрешаем запросы со всех адресов
+app.use(cors());
+// Включаем чтение JSON (вместо body-parser)
+app.use(express.json());
+
+// База данных в памяти
 let globalNodes = {};
 
-// Маршрут для получения всех узлов
+// Главная страница (чтобы видеть, что сервер работает)
+app.get('/', (req, res) => {
+    res.send('Mirix Aether Server is Running!');
+});
+
+// Получить список всех узлов
 app.get('/nodes', (req, res) => {
-  res.json(globalNodes);
+    res.json(globalNodes);
 });
 
-// Маршрут для сохранения/обновления узла
+// Сохранить позицию узла
 app.post('/nodes', (req, res) => {
-  const node = req.body;
-  if (node.name) {
-    globalNodes[node.name] = {
-      id: node.id,
-      name: node.name,
-      x: node.x,
-      y: node.y,
-      isOnline: true,
-      lastActive: Date.now()
-    };
-  }
-  res.sendStatus(200);
-});
-
-const server = app.listen(port, () => {
-  console.log(`Сервер mirix запущен на порту ${port}`);
-});
-
-// Запуск PeerJS на том же сервере
-const peerServer = PeerServer({
-  path: '/myapp',
-  server: server
-});
-
-// Помечаем игроков оффлайн, когда они отключаются
-peerServer.on('disconnect', (client) => {
-  Object.values(globalNodes).forEach(node => {
-    if (node.id === client.getId()) {
-      node.isOnline = false;
+    const node = req.body;
+    if (node && node.name) {
+        globalNodes[node.name] = {
+            id: node.id,
+            name: node.name,
+            x: node.x,
+            y: node.y,
+            isOnline: true,
+            lastActive: Date.now()
+        };
+        res.status(200).json({ success: true });
+    } else {
+        res.status(400).json({ error: 'Missing name' });
     }
-  });
+});
+
+// Запуск сервера
+const server = app.listen(port, () => {
+    console.log(`Server is listening on port ${port}`);
+});
+
+// Подключение PeerJS как части сервера Express
+const peerServer = ExpressPeerServer(server, {
+    debug: true,
+    path: '/myapp'
+});
+
+app.use('/', peerServer);
+
+// Логика отключения
+peerServer.on('disconnect', (client) => {
+    const clientId = client.getId();
+    Object.values(globalNodes).forEach(node => {
+        if (node.id === clientId) {
+            node.isOnline = false;
+        }
+    });
 });
