@@ -1,7 +1,0 @@
-services:
-  - type: web
-    name: my-peer-server
-    env: node
-    plan: free
-    buildCommand: npm install
-    startCommand: npm start
