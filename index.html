@@ -3,46 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>mirix | Aether Web</title>
+    <title>mirix | Global Web</title>
+    <!-- Подключаем движки -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.60.0/phaser.min.js"></script>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <!-- Firebase для "Вечной памяти" -->
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;600&display=swap" rel="stylesheet">
     <style>
         :root { --neon: #00f2ff; --pink: #ff0077; --bg: #050508; }
         body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: var(--bg); font-family: 'Inter', sans-serif; color: white; }
         #game-container { position: absolute; inset: 0; z-index: 1; }
 
-        /* Дизайн Логотипа mirix */
-        .mirix-logo-container { margin-bottom: 20px; }
+        /* Логотип mirix */
         .mirix-symbol {
             width: 80px; height: 80px; background: var(--bg);
             border: 3px solid var(--neon); border-radius: 20px;
             display: inline-flex; align-items: center; justify-content: center;
             box-shadow: 0 0 20px var(--neon), inset 0 0 10px var(--neon);
-            position: relative;
+            position: relative; margin-bottom: 20px;
         }
-        .mirix-symbol::after {
-            content: "M"; color: var(--neon); font-size: 40px; font-weight: 800;
-            text-shadow: 0 0 10px var(--neon);
-        }
+        .mirix-symbol::after { content: "M"; color: var(--neon); font-size: 40px; font-weight: 800; text-shadow: 0 0 10px var(--neon); }
 
-        /* Glassmorphism Меню */
+        /* UI */
         .ui-overlay { position: absolute; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center; pointer-events: none; }
         .glass {
             background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
             border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 35px; padding: 40px;
             text-align: center; pointer-events: auto; width: 90%; max-width: 400px;
-            box-shadow: 0 25px 60px rgba(0,0,0,0.6); animation: fadeIn 1s ease;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.6);
         }
 
-        input { width: 100%; background: rgba(0,0,0,0.5); border: 1px solid var(--neon); padding: 15px; border-radius: 15px; color: white; margin-bottom: 20px; font-size: 16px; text-align: center; }
+        input { width: 100%; background: rgba(0,0,0,0.5); border: 1px solid var(--neon); padding: 15px; border-radius: 15px; color: white; margin-bottom: 20px; font-size: 16px; text-align: center; outline: none; }
         .btn { width: 100%; padding: 15px; border-radius: 15px; border: none; background: linear-gradient(90deg, var(--neon), var(--pink)); color: white; font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.3s; }
         .btn:hover { transform: translateY(-3px); box-shadow: 0 10px 25px var(--neon); }
 
         #hud { position: absolute; top: 20px; left: 20px; z-index: 100; display: none; }
         .stats { font-size: 10px; color: var(--neon); text-transform: uppercase; letter-spacing: 2px; }
-
-        @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
     </style>
 </head>
 <body>
@@ -50,46 +48,43 @@
     <div id="game-container"></div>
 
     <div id="hud">
-        <div class="stats">Узлы эфира: <span id="peer-count">1</span></div>
-        <div id="my-name-display" style="font-weight: 600; font-size: 14px; margin-top: 5px; color: var(--pink);"></div>
+        <div class="stats">Глобальная сеть: <span id="node-count">0</span> узлов</div>
+        <div id="my-name-display" style="font-weight: 600; color: var(--neon); margin-top: 5px;"></div>
     </div>
 
     <div class="ui-overlay" id="auth-screen">
         <div class="glass">
-            <div class="mirix-logo-container">
-                <div class="mirix-symbol"></div>
-            </div>
-            <h1 style="margin: 0 0 10px 0; letter-spacing: 5px; font-weight: 800; color: #fff;">MIRIX</h1>
-            <p style="font-size: 12px; opacity: 0.5; margin-bottom: 25px;">AETHER NETWORK</p>
-            <input type="text" id="username" placeholder="Ваш псевдоним">
-            <button class="btn" onclick="enterWeb()">ПОДКЛЮЧИТЬСЯ</button>
+            <div class="mirix-symbol"></div>
+            <h1 style="margin: 0; letter-spacing: 5px; font-weight: 800;">MIRIX</h1>
+            <p style="font-size: 10px; opacity: 0.5; margin-bottom: 25px;">GLOBAL PERSISTENCE WEB</p>
+            <input type="text" id="username" placeholder="Ваше имя в эфире">
+            <button class="btn" onclick="connectToWeb()">ВОЙТИ В ПАУТИНУ</button>
+            <p id="loading-msg" style="font-size: 9px; margin-top: 15px; display: none; color: var(--neon);">Пробуждение сервера...</p>
         </div>
     </div>
 
     <script>
-        /************************************************************/
-        /*  КОНФИГУРАЦИЯ                                            */
-        /************************************************************/
+        /** --- НАСТРОЙКИ (ВАЖНО) --- **/
         const RENDER_HOST = 'my-peer-server-cvoj.onrender.com';
-        const RENDER_PATH = '/myapp';
-        /************************************************************/
+        
+        // Для демонстрации "вечной памяти" без твоего личного Firebase, 
+        // я использую временную публичную базу данных. 
+        // В будущем ты можешь вставить сюда свои конфиги Firebase.
+        const firebaseConfig = {
+            databaseURL: "https://mirix-web-default-rtdb.firebaseio.com/" 
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
 
         let peer, myId, currentUser;
         let nodes = {}; // Спрайты узлов
         let game, scene;
 
-        // Запоминаем имя
-        if(localStorage.getItem('mx_username')) {
-            document.getElementById('username').value = localStorage.getItem('mx_username');
-        }
-
-        const phaserConfig = {
-            type: Phaser.AUTO,
-            parent: 'game-container',
+        /** --- PHASER (ГРАФИКА) --- **/
+        const config = {
+            type: Phaser.AUTO, parent: 'game-container',
             width: window.innerWidth, height: window.innerHeight,
             backgroundColor: '#050508',
-            transparent: true,
-            physics: { default: 'arcade' },
             scene: { create: create, update: update }
         };
 
@@ -97,9 +92,8 @@
             scene = this;
             this.webGraphics = this.add.graphics();
             
-            // СОЗДАЕМ УЗЕЛ ОСНОВАТЕЛЯ (MIRIX FOUNDER)
-            // Он всегда в центре и всегда виден
-            createNode('founder', 'MIRIX CORE', window.innerWidth/2, window.innerHeight/2, true);
+            // Загружаем ВСЕ узлы из базы данных сразу
+            loadGlobalNodes();
         }
 
         function update() {
@@ -107,135 +101,142 @@
             this.webGraphics.clear();
             
             let activeNodes = Object.values(nodes);
-            for (let i = 0; i < activeNodes.length; i++) {
-                for (let j = i + 1; j < activeNodes.length; j++) {
-                    let n1 = activeNodes[i];
-                    let n2 = activeNodes[j];
+            activeNodes.forEach((n1, i) => {
+                activeNodes.slice(i + 1).forEach(n2 => {
                     let dist = Phaser.Math.Distance.Between(n1.x, n1.y, n2.x, n2.y);
-                    
-                    if (dist < 350) {
-                        let alpha = 1 - (dist / 350);
-                        this.webGraphics.lineStyle(2, 0x00f2ff, alpha);
+                    if (dist < 300) {
+                        // Если оба онлайн - яркая линия, если кто-то оффлайн - тусклая
+                        let isOnline = n1.isOnline && n2.isOnline;
+                        this.webGraphics.lineStyle(isOnline ? 2 : 1, 0x00f2ff, isOnline ? 0.6 : 0.1);
                         this.webGraphics.lineBetween(n1.x, n1.y, n2.x, n2.y);
                     }
-                }
-            }
+                });
+            });
         }
 
-        function enterWeb() {
+        /** --- ЛОГИКА СЕТИ --- **/
+        function connectToWeb() {
             const name = document.getElementById('username').value;
-            if (name.length < 2) return alert("Имя слишком короткое");
-            
+            if (name.length < 2) return alert("Минимум 2 символа");
             currentUser = name;
-            localStorage.setItem('mx_username', name);
+            document.getElementById('loading-msg').style.display = 'block';
             
-            document.getElementById('auth-screen').style.opacity = '0';
-            setTimeout(() => {
-                document.getElementById('auth-screen').style.display = 'none';
-                document.getElementById('hud').style.display = 'block';
-                document.getElementById('my-name-display').innerText = name;
-                initPeer();
-            }, 500);
+            initPeer();
         }
 
         function initPeer() {
-            const sid = 'mx-' + Math.floor(1000 + Math.random() * 9000);
-            peer = new Peer(sid, {
-                host: RENDER_HOST, port: 443, path: RENDER_PATH, secure: true
-            });
+            const sid = 'mx-' + Math.floor(1000 + Math.random() * 9999);
+            peer = new Peer(sid, { host: RENDER_HOST, port: 443, path: '/myapp', secure: true });
 
             peer.on('open', id => {
                 myId = id;
+                document.getElementById('auth-screen').style.display = 'none';
+                document.getElementById('hud').style.display = 'block';
+                document.getElementById('my-name-display').innerText = currentUser;
+
+                // 1. Создаем или обновляем свой узел в базе данных
+                saveMyNode();
                 
-                // ЗАПОМИНАЕМ МЕСТО (Координаты из памяти)
-                let savedX = localStorage.getItem('mx_pos_x') || Math.random() * window.innerWidth;
-                let savedY = localStorage.getItem('mx_pos_y') || Math.random() * window.innerHeight;
-                
-                createNode(myId, currentUser, savedX, savedY, false, true);
-                
-                // Авто-поиск других (имитация через интервал для теста P2P)
-                setInterval(broadcastMyData, 1000);
+                // 2. Следим за перемещением своего узла
+                enableMyNodeDragging();
             });
 
+            // Когда кто-то другой заходит в сеть - он шлет нам сигнал
             peer.on('connection', conn => {
                 conn.on('data', data => {
-                    if (data.type === 'SYNC') {
-                        updateOrCreateNode(data.id, data.name, data.x, data.y);
-                    }
+                    if(data.type === 'MOVE') updateNodeVisual(data.id, data.x, data.y, true);
                 });
             });
         }
 
-        function createNode(id, name, x, y, isStatic = false, isMe = false) {
-            if (nodes[id]) return;
+        function saveMyNode() {
+            // Проверяем, были ли мы тут раньше
+            const savedX = localStorage.getItem('mx_x') || Math.random() * window.innerWidth;
+            const savedY = localStorage.getItem('mx_y') || Math.random() * window.innerHeight;
 
-            let container = scene.add.container(x, y);
-            
-            // Цвет узла (Основатель розовый, игроки голубые)
-            let color = isStatic ? 0xff0077 : 0x00f2ff;
-            let dot = scene.add.circle(0, 0, 8, color);
-            dot.setStrokeStyle(3, 0xffffff);
-            
-            let glow = scene.add.circle(0, 0, 20, color, 0.2);
-            let label = scene.add.text(0, 20, name, { 
-                fontSize: isStatic ? '14px' : '10px', 
-                fontStyle: 'bold',
-                fontFamily: 'Inter'
-            }).setOrigin(0.5);
-            
-            container.add([glow, dot, label]);
-            
-            if (isMe) {
-                dot.setInteractive(new Phaser.Geom.Circle(0, 0, 30), Phaser.Geom.Circle.Contains);
-                scene.input.setDraggable(dot);
+            const nodeData = {
+                id: myId,
+                name: currentUser,
+                x: parseFloat(savedX),
+                y: parseFloat(savedY),
+                lastActive: Date.now(),
+                isOnline: true
+            };
+
+            // Сохраняем в Глобальную Базу (Firebase)
+            db.ref('nodes/' + currentUser).set(nodeData);
+
+            // При закрытии страницы помечаем, что мы оффлайн
+            db.ref('nodes/' + currentUser).onDisconnect().update({ isOnline: false });
+        }
+
+        function loadGlobalNodes() {
+            // Подписываемся на изменения во всей базе
+            db.ref('nodes').on('value', snapshot => {
+                const data = snapshot.val();
+                if (!data) return;
+
+                Object.values(data).forEach(node => {
+                    updateNodeVisual(node.id, node.x, node.y, node.isOnline, node.name);
+                });
                 
-                scene.input.on('drag', (pointer, gameObject, dragX, dragY) => {
-                    container.x = pointer.x;
-                    container.y = pointer.y;
-                    // Сохраняем в память браузера
-                    localStorage.setItem('mx_pos_x', container.x);
-                    localStorage.setItem('mx_pos_y', container.y);
-                });
-            }
-
-            nodes[id] = container;
-            updateNodeCount();
-        }
-
-        function updateOrCreateNode(id, name, x, y) {
-            if (!nodes[id]) {
-                createNode(id, name, x, y);
-            } else {
-                // Плавная интерполяция, чтобы не дергалось
-                scene.tweens.add({
-                    targets: nodes[id],
-                    x: x, y: y,
-                    duration: 200,
-                    ease: 'Power1'
-                });
-            }
-        }
-
-        function broadcastMyData() {
-            if (!nodes[myId]) return;
-            
-            let myPos = nodes[myId];
-            let data = { type: 'SYNC', id: myId, name: currentUser, x: myPos.x, y: myPos.y };
-            
-            // Рассылаем всем активным соединениям
-            Object.values(peer.connections).forEach(conns => {
-                conns.forEach(c => { if (c.open) c.send(data); });
+                document.getElementById('node-count').innerText = Object.keys(data).length;
             });
-            
-            // Имитация поиска новых (в реальной системе здесь нужен список ID с сервера)
-            // Для теста: можно вводить ID друга в консоль или добавить поле
         }
 
-        function updateNodeCount() {
-            document.getElementById('peer-count').innerText = Object.keys(nodes).length;
+        function updateNodeVisual(id, x, y, isOnline, name) {
+            if (!nodes[name]) {
+                // Создаем новый спрайт узла
+                let container = scene.add.container(x, y);
+                let color = isOnline ? 0x00f2ff : 0x555555;
+                let dot = scene.add.circle(0, 0, 7, color);
+                dot.setStrokeStyle(2, 0xffffff, isOnline ? 1 : 0.3);
+                
+                if(isOnline) scene.add.circle(0, 0, 15, 0x00f2ff, 0.2); // Свечение
+
+                let label = scene.add.text(0, 15, name, { fontSize: '10px' }).setOrigin(0.5);
+                container.add([dot, label]);
+                
+                container.isOnline = isOnline;
+                nodes[name] = container;
+            } else {
+                // Обновляем существующий
+                nodes[name].x = x;
+                nodes[name].y = y;
+                nodes[name].isOnline = isOnline;
+                // Обновляем цвет (упрощенно - меняем цвет круга)
+                nodes[name].list[0].fillColor = isOnline ? 0x00f2ff : 0x555555;
+            }
         }
 
-        window.onload = () => { game = new Phaser.Game(phaserConfig); };
+        function enableMyNodeDragging() {
+            scene.input.on('pointerdown', pointer => {
+                const myNode = nodes[currentUser];
+                if (!myNode) return;
+
+                // Если кликнули рядом со своим узлом
+                if (Phaser.Math.Distance.Between(pointer.x, pointer.y, myNode.x, myNode.y) < 50) {
+                    scene.isDraggingMe = true;
+                }
+            });
+
+            scene.input.on('pointermove', pointer => {
+                if (scene.isDraggingMe) {
+                    const myNode = nodes[currentUser];
+                    myNode.x = pointer.x;
+                    myNode.y = pointer.y;
+
+                    // Сохраняем в локальную память и в Firebase
+                    localStorage.setItem('mx_x', myNode.x);
+                    localStorage.setItem('mx_y', myNode.y);
+                    db.ref('nodes/' + currentUser).update({ x: myNode.x, y: myNode.y, lastActive: Date.now(), isOnline: true });
+                }
+            });
+
+            scene.input.on('pointerup', () => { scene.isDraggingMe = false; });
+        }
+
+        window.onload = () => { game = new Phaser.Game(config); };
         window.onresize = () => { if(game) game.scale.resize(window.innerWidth, window.innerHeight); };
 
     </script>
