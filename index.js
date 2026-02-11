@@ -5,21 +5,15 @@ const { ExpressPeerServer } = require('peer');
 const app = express();
 const port = process.env.PORT || 9000;
 
-// 1. Настройка CORS - разрешаем всё для всех
-app.use(cors({
-    origin: '*',
-    methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-}));
-
+// Разрешаем CORS для всех запросов
+app.use(cors());
 app.use(express.json());
 
-// 2. База данных
+// Временное хранилище узлов
 let globalNodes = {};
 
-// 3. Маршруты API (Должны быть ВЫШЕ PeerServer)
+// Маршруты для базы данных паутины
 app.get('/nodes', (req, res) => {
-    console.log("Запрос списка узлов");
     res.json(globalNodes);
 });
 
@@ -36,26 +30,26 @@ app.post('/nodes', (req, res) => {
         };
         res.status(200).json({ success: true });
     } else {
-        res.status(400).json({ error: 'Invalid data' });
+        res.status(400).json({ error: "Invalid data" });
     }
 });
 
+// Простая проверка работы
 app.get('/', (req, res) => {
-    res.send('Mirix Server is Active');
+    res.send('Mirix Aether Server Active');
 });
 
-// 4. Запуск сервера
+// Запуск сервера
 const server = app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
+    console.log(`Server started on port ${port}`);
 });
 
-// 5. Настройка PeerServer на отдельный путь /peerjs
+// Настройка PeerJS (будет доступен по пути /peerjs)
 const peerServer = ExpressPeerServer(server, {
     debug: true,
-    path: '/' 
+    path: '/'
 });
 
-// Монтируем PeerServer по пути /peerjs
 app.use('/peerjs', peerServer);
 
 peerServer.on('disconnect', (client) => {
