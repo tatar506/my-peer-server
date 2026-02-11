@@ -1,0 +1,6 @@
+{
+  "name": "peer-server",
+  "version": "1.0.0",
+  "dependencies": { "peer": "latest" },
+  "scripts": { "start": "peerjs --port $PORT --path /myapp" }
+}
