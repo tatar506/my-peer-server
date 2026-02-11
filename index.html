@@ -3,357 +3,258 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>mirix | NEXT-GEN Messenger</title>
+    <title>mirix | Aether Web</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.60.0/phaser.min.js"></script>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --accent: #00f2ff;
+            --neon: #00f2ff;
             --pink: #ff0077;
-            --glass: rgba(255, 255, 255, 0.03);
-            --glass-strong: rgba(255, 255, 255, 0.08);
-            --border: rgba(255, 255, 255, 0.15);
             --bg: #050508;
         }
 
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: var(--bg); font-family: 'Inter', sans-serif; color: white; }
         
-        body, html { 
-            margin: 0; padding: 0; height: 100%; width: 100%; 
-            font-family: 'Inter', sans-serif; background: var(--bg); 
-            color: white; overflow: hidden;
+        #game-container { position: absolute; inset: 0; z-index: 1; }
+
+        /* UI в стиле Glassmorphism */
+        .ui-overlay {
+            position: absolute; inset: 0; z-index: 10;
+            display: flex; align-items: center; justify-content: center;
+            pointer-events: none;
         }
 
-        /* АНИМИРОВАННЫЙ ФОН */
-        .bg-animate {
-            position: fixed; inset: 0; z-index: -1;
-            background: radial-gradient(circle at 20% 30%, #1a1a2e 0%, transparent 40%),
-                        radial-gradient(circle at 80% 70%, #2a1a2e 0%, transparent 40%);
-            filter: blur(80px); animation: pulseBg 10s infinite alternate;
-        }
-
-        @keyframes pulseBg {
-            from { transform: scale(1); } to { transform: scale(1.2); }
-        }
-
-        /* ЭФФЕКТ СТЕКЛА С ТЕКСТУРОЙ */
         .glass {
-            background: var(--glass);
-            backdrop-filter: blur(30px);
-            -webkit-backdrop-filter: blur(30px);
-            border: 1px solid var(--border);
-            border-radius: 28px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-            position: relative; overflow: hidden;
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 30px;
+            padding: 40px;
+            text-align: center;
+            pointer-events: auto;
+            width: 90%; max-width: 400px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
         }
 
-        .glass::after {
-            content: ""; position: absolute; inset: 0;
-            background-image: url('https://www.transparenttextures.com/patterns/carbon-fibre.png');
-            opacity: 0.05; pointer-events: none;
-        }
-
-        /* ЭКРАН ВХОДА */
-        #auth-screen {
-            position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
-            z-index: 1000; padding: 20px; transition: 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .auth-card {
-            width: 100%; max-width: 380px; padding: 50px 30px; text-align: center;
-            animation: cardPop 0.6s ease-out;
-        }
-
-        @keyframes cardPop {
-            0% { opacity: 0; transform: scale(0.8) translateY(30px); }
-            100% { opacity: 1; transform: scale(1) translateY(0); }
-        }
-
-        .logo-main {
-            width: 110px; height: 110px; border-radius: 30px; margin-bottom: 25px;
-            border: 2px solid var(--accent); box-shadow: 0 0 30px rgba(0, 242, 255, 0.3);
-            object-fit: cover; transition: 0.5s;
+        .logo {
+            width: 100px; height: 100px; border-radius: 25px;
+            margin-bottom: 20px; border: 2px solid var(--neon);
+            box-shadow: 0 0 20px rgba(0, 242, 255, 0.2);
         }
 
         input {
-            width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--border);
-            padding: 16px; border-radius: 16px; color: white; margin-bottom: 15px;
-            font-size: 16px; transition: 0.3s; text-align: center;
+            width: 100%; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2);
+            padding: 15px; border-radius: 15px; color: white; margin-bottom: 20px;
+            font-size: 16px; text-align: center; outline: none;
         }
-
-        input:focus { border-color: var(--accent); box-shadow: 0 0 15px rgba(0, 242, 255, 0.2); }
 
         .btn {
-            width: 100%; padding: 16px; border-radius: 16px; border: none;
-            background: linear-gradient(90deg, var(--accent), #007AFF);
+            width: 100%; padding: 15px; border-radius: 15px; border: none;
+            background: linear-gradient(90deg, var(--neon), #007AFF);
             color: white; font-size: 16px; font-weight: 600; cursor: pointer;
-            transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition: 0.3s;
         }
 
-        .btn:hover:not(:disabled) { transform: translateY(-3px); box-shadow: 0 5px 20px rgba(0, 242, 255, 0.4); }
-        .btn:active { transform: scale(0.95); }
-        .btn:disabled { opacity: 0.2; cursor: not-allowed; }
+        .btn:hover { transform: scale(1.05); box-shadow: 0 0 20px var(--neon); }
 
-        /* ОСНОВНОЙ ИНТЕРФЕЙС */
-        #main-app {
-            display: grid; grid-template-columns: 320px 1fr;
-            height: 100vh; padding: 25px; gap: 25px; display: none;
-            animation: appSlide 0.8s ease;
+        #hud {
+            position: absolute; top: 20px; left: 20px; z-index: 100;
+            display: none; pointer-events: none;
         }
 
-        @keyframes appSlide { from { opacity: 0; filter: blur(10px); } to { opacity: 1; filter: blur(0); } }
+        .stats { font-size: 12px; color: var(--neon); text-transform: uppercase; letter-spacing: 2px; }
 
-        .sidebar { display: flex; flex-direction: column; gap: 20px; }
-        
-        .profile { padding: 20px; display: flex; align-items: center; gap: 15px; }
-        .avatar {
-            width: 55px; height: 55px; border-radius: 18px;
-            background: linear-gradient(45deg, var(--accent), var(--pink));
-            display: flex; align-items: center; justify-content: center;
-            font-weight: bold; font-size: 20px; text-shadow: 0 2px 5px rgba(0,0,0,0.3);
-        }
-
-        .contact-list { flex: 1; overflow-y: auto; padding-right: 5px; }
-        .contact-item {
-            padding: 15px; border-radius: 20px; margin-bottom: 12px; cursor: pointer;
-            transition: 0.3s; display: flex; align-items: center; gap: 12px;
-            background: rgba(255,255,255,0.02);
-        }
-        .contact-item:hover { background: var(--glass-strong); transform: translateX(5px); }
-        .contact-item.active { background: var(--accent); color: black; }
-
-        /* ОКНО ЧАТА */
-        .chat-window { display: flex; flex-direction: column; overflow: hidden; }
-        .chat-header {
-            padding: 20px 30px; border-bottom: 1px solid var(--border);
-            display: flex; justify-content: space-between; align-items: center;
-        }
-
-        .messages { flex: 1; padding: 25px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
-
-        .bubble {
-            max-width: 70%; padding: 14px 20px; border-radius: 22px;
-            font-size: 15px; line-height: 1.4; animation: bubbleIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            position: relative;
-        }
-        @keyframes bubbleIn { from { opacity: 0; transform: translateY(10px) scale(0.9); } }
-
-        .me { align-self: flex-end; background: var(--accent); color: black; font-weight: 500; border-bottom-right-radius: 4px; box-shadow: 0 4px 15px rgba(0, 242, 255, 0.3); }
-        .them { align-self: flex-start; background: var(--glass-strong); border-bottom-left-radius: 4px; border: 1px solid var(--border); }
-
-        .input-bar { padding: 25px; display: flex; gap: 15px; background: rgba(0,0,0,0.2); }
-
-        /* ТЕКСТУРНЫЕ ИКОНКИ */
-        .icon-btn {
-            width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;
-            border-radius: 14px; background: var(--glass-strong); border: 1px solid var(--border);
-            cursor: pointer; transition: 0.3s;
-        }
-        .icon-btn:hover { background: white; color: black; transform: rotate(5deg); }
-
-        /* CALL OVERLAY */
-        #call-ui {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.95);
-            z-index: 2000; display: none; flex-direction: column;
-            align-items: center; justify-content: center;
-        }
-        video { width: 85%; max-width: 1000px; border-radius: 30px; border: 1px solid var(--accent); box-shadow: 0 0 50px rgba(0, 242, 255, 0.2); }
-
-        /* МОБИЛЬНОСТЬ */
-        @media (max-width: 768px) {
-            #main-app { grid-template-columns: 1fr; padding: 10px; }
-            .sidebar { display: none; }
-            .bubble { max-width: 85%; }
+        /* Чат внутри паутины */
+        #web-chat {
+            position: absolute; bottom: 20px; left: 20px; width: 250px;
+            z-index: 100; display: none; pointer-events: auto;
         }
     </style>
 </head>
 <body>
 
-    <div class="bg-animate"></div>
+    <div id="game-container"></div>
 
-    <!-- ВХОД -->
-    <div id="auth-screen">
-        <div class="auth-card glass">
-            <img src="https://i127.fastpic.org/thumb/2026/0211/d2/_d9953a8a86111b05c17efa7f3401c5d2.jpeg" class="logo-main" alt="mirix">
-            <h2 style="letter-spacing: 2px; margin-bottom: 30px;">mirix</h2>
-            <input type="text" id="username" placeholder="Ваш Никнейм">
-            <button class="btn" onclick="handleAuth()">ВОЙТИ В СЕТЬ</button>
-            <p style="font-size: 10px; margin-top: 20px; opacity: 0.4; text-transform: uppercase; letter-spacing: 1px;">Powered by P2P Encryption</p>
+    <div id="hud">
+        <div class="stats">Сеть: <span id="peer-count">1</span> узлов</div>
+        <div id="my-name-display" style="font-weight: 600; margin-top: 5px;"></div>
+    </div>
+
+    <div class="ui-overlay" id="auth-screen">
+        <div class="glass">
+            <img src="https://i127.fastpic.org/thumb/2026/0211/d2/_d9953a8a86111b05c17efa7f3401c5d2.jpeg" class="logo">
+            <h2 style="margin: 0 0 20px 0; letter-spacing: 3px;">mirix</h2>
+            <input type="text" id="username" placeholder="Введите ваш ник">
+            <button class="btn" onclick="enterWeb()">ВОЙТИ В ПАУТИНУ</button>
         </div>
     </div>
 
-    <!-- МЕССЕНДЖЕР -->
-    <div id="main-app">
-        <div class="sidebar glass">
-            <div class="profile">
-                <div class="avatar" id="my-avatar">?</div>
-                <div>
-                    <div id="my-name" style="font-weight: 600; font-size: 16px;">User</div>
-                    <div id="my-id-label" style="font-size: 11px; color: var(--accent); margin-top: 4px;">CONNECTING...</div>
-                </div>
-            </div>
+    <script>
+        /** --- CONFIG --- **/
+        const RENDER_HOST = 'my-peer-server-cvoj.onrender.com';
+        const RENDER_PATH = '/myapp';
+
+        let peer, myId, currentUser;
+        let connections = {}; // Список активных соединений
+        let nodes = {}; // Спрайты узлов в Phaser
+        let game, scene;
+
+        /** --- PHASER ENGINE (Визуализация паутины) --- **/
+        const phaserConfig = {
+            type: Phaser.AUTO,
+            parent: 'game-container',
+            width: window.innerWidth,
+            height: window.innerHeight,
+            backgroundColor: '#050508',
+            transparent: true,
+            physics: {
+                default: 'arcade',
+                arcade: { gravity: { y: 0 } }
+            },
+            scene: { preload: preload, create: create, update: update }
+        };
+
+        function preload() {
+            this.load.image('node', 'https://cdn-icons-png.flaticon.com/512/594/594846.png'); // Светящаяся точка
+        }
+
+        function create() {
+            scene = this;
+            this.webGraphics = this.add.graphics();
             
-            <div style="padding: 0 20px;">
-                <button class="btn" id="add-btn" style="background: var(--glass-strong); font-size: 11px;" onclick="addFriend()" disabled>+ ДОБАВИТЬ ДРУГА</button>
-            </div>
+            // Плавное движение камеры
+            this.cameras.main.setBackgroundColor('#050508');
+        }
 
-            <div class="contact-list" id="contacts"></div>
-        </div>
-
-        <div class="chat-window glass">
-            <div class="chat-header">
-                <div id="chat-target" style="font-weight: 600; letter-spacing: 1px;">mirix HUB</div>
-                <div style="display: flex; gap: 12px;">
-                    <div class="icon-btn" onclick="call(false)">☏</div>
-                    <div class="icon-btn" style="border-color: #34C759;" onclick="call(true)">🖵</div>
-                </div>
-            </div>
-
-            <div class="messages" id="msg-box">
-                <div class="them bubble">Добро пожаловать. Добавьте друга по ID для начала защищенного сеанса.</div>
-            </div>
-
-            <div class="input-bar">
-                <input type="text" id="msg-input" placeholder="Введите сообщение..." style="margin: 0; text-align: left; padding-left: 20px;">
-                <button class="btn" style="width: 80px;" onclick="send()">SEND</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ЗВОНОК -->
-    <div id="call-ui">
-        <video id="v-remote" autoplay playsinline></video>
-        <button class="btn" style="width: 220px; margin-top: 40px; background: var(--pink);" onclick="hangup()">ЗАВЕРШИТЬ</button>
-    </div>
-
-<script>
-    /************************************************************/
-    /*  СЕРВЕРНАЯ КОНФИГУРАЦИЯ                                  */
-    /************************************************************/
-    const CONFIG = {
-        host: 'my-peer-server-cvoj.onrender.com',
-        path: '/myapp',
-        port: 443,
-        secure: true
-    };
-    /************************************************************/
-
-    let peer, myId, currentUser;
-    let friends = JSON.parse(localStorage.getItem('mirix_friends') || '[]');
-    let activeId = null;
-    let localStream, currentCall;
-
-    function handleAuth() {
-        const name = document.getElementById('username').value;
-        if(name.length < 2) return alert("Имя слишком короткое");
-        currentUser = { name };
-        document.getElementById('auth-screen').style.opacity = '0';
-        document.getElementById('auth-screen').style.pointerEvents = 'none';
-        document.getElementById('main-app').style.display = 'grid';
-        initNetwork();
-    }
-
-    function initNetwork() {
-        const sid = Math.floor(1000 + Math.random() * 9000).toString();
-        peer = new Peer('mx-' + sid, CONFIG);
-
-        peer.on('open', id => {
-            myId = id.split('-')[1];
-            document.getElementById('my-name').innerText = currentUser.name;
-            document.getElementById('my-id-label').innerText = "ID: " + myId;
-            document.getElementById('my-avatar').innerText = currentUser.name[0].toUpperCase();
-            document.getElementById('add-btn').disabled = false;
-            renderFriends();
-        });
-
-        peer.on('connection', c => {
-            c.on('data', data => {
-                if(data.type === 'MSG') pushMsg(data.text, 'them');
-                if(data.type === 'ADD') reqFriend(data.from, data.name);
-            });
-        });
-
-        peer.on('call', c => {
-            if(confirm("Входящий вызов. Принять?")) {
-                c.answer();
-                handleStream(c);
-            }
-        });
-    }
-
-    function addFriend() {
-        const id = prompt("Введите 4-значный ID друга:");
-        if(!id) return;
-        const c = peer.connect('mx-' + id);
-        c.on('open', () => {
-            c.send({ type: 'ADD', from: myId, name: currentUser.name });
-            alert("Запрос отправлен!");
-        });
-    }
-
-    function reqFriend(id, name) {
-        if(confirm(`Игрок ${name} (ID: ${id}) хочет вас добавить. Принять?`)) {
-            if(!friends.find(f => f.id === id)) {
-                friends.push({id, name});
-                localStorage.setItem('mirix_friends', JSON.stringify(friends));
-                renderFriends();
+        function update() {
+            if (!this.webGraphics) return;
+            this.webGraphics.clear();
+            
+            // Рисуем линии паутины
+            this.webGraphics.lineStyle(1, 0x00f2ff, 0.2);
+            
+            let activeNodes = Object.values(nodes);
+            for (let i = 0; i < activeNodes.length; i++) {
+                for (let j = i + 1; j < activeNodes.length; j++) {
+                    let dist = Phaser.Math.Distance.Between(activeNodes[i].x, activeNodes[i].y, activeNodes[j].x, activeNodes[j].y);
+                    if (dist < 400) {
+                        this.webGraphics.lineStyle(1, 0x00f2ff, 1 - (dist / 400));
+                        this.webGraphics.lineBetween(activeNodes[i].x, activeNodes[i].y, activeNodes[j].x, activeNodes[j].y);
+                    }
+                }
             }
         }
-    }
 
-    function renderFriends() {
-        const list = document.getElementById('contacts');
-        list.innerHTML = '';
-        friends.forEach(f => {
-            const el = document.createElement('div');
-            el.className = 'contact-item';
-            el.innerHTML = `<div class="avatar" style="width:35px; height:35px; font-size:14px;">${f.name[0]}</div> <span>${f.name}</span>`;
-            el.onclick = () => { activeId = f.id; document.getElementById('chat-target').innerText = f.name; };
-            list.appendChild(el);
-        });
-    }
+        /** --- NETWORK LOGIC (PeerJS) --- **/
+        function enterWeb() {
+            const name = document.getElementById('username').value;
+            if (name.length < 2) return alert("Имя слишком короткое");
+            
+            currentUser = name;
+            document.getElementById('auth-screen').style.display = 'none';
+            document.getElementById('hud').style.display = 'block';
+            document.getElementById('my-name-display').innerText = name;
 
-    function send() {
-        const input = document.getElementById('msg-input');
-        if(!input.value || !activeId) return;
-        const c = peer.connect('mx-' + activeId);
-        c.on('open', () => {
-            c.send({ type: 'MSG', text: input.value });
-            pushMsg(input.value, 'me');
-            input.value = '';
-        });
-    }
+            initPeer();
+        }
 
-    function pushMsg(text, type) {
-        const box = document.getElementById('msg-box');
-        const div = document.createElement('div');
-        div.className = `bubble ${type}`;
-        div.innerText = text;
-        box.appendChild(div);
-        box.scrollTop = box.scrollHeight;
-    }
+        function initPeer() {
+            const sid = 'mx-' + Math.floor(1000 + Math.random() * 9000);
+            peer = new Peer(sid, {
+                host: RENDER_HOST, port: 443, path: RENDER_PATH, secure: true
+            });
 
-    async function call(isScreen) {
-        if(!activeId) return;
-        try {
-            localStream = isScreen ? 
-                await navigator.mediaDevices.getDisplayMedia({video:true}) : 
-                await navigator.mediaDevices.getUserMedia({audio:true});
-            const c = peer.call('mx-' + activeId, localStream);
-            handleStream(c);
-        } catch (e) { alert("Ошибка медиа"); }
-    }
+            peer.on('open', id => {
+                myId = id;
+                createNode(myId, currentUser, true);
+                
+                // В реальном проекте здесь должен быть запрос к API за списком ID.
+                // Но мы используем "сканирование" или ручной ввод для теста.
+                // Для паутины мы будем рассылать сигнал всем знакомым.
+                console.log("Ваш узел создан в сети эфира.");
+            });
 
-    function handleStream(c) {
-        currentCall = c;
-        document.getElementById('call-ui').style.display = 'flex';
-        c.on('stream', st => document.getElementById('v-remote').srcObject = st);
-    }
+            peer.on('connection', conn => {
+                conn.on('data', data => {
+                    if (data.type === 'NODE_DATA') {
+                        updateOrCreateNode(data.id, data.name, data.x, data.y);
+                    }
+                });
+            });
+        }
 
-    function hangup() {
-        if(localStream) localStream.getTracks().forEach(t => t.stop());
-        document.getElementById('call-ui').style.display = 'none';
-    }
-</script>
+        function createNode(id, name, isMe) {
+            let x = Math.random() * window.innerWidth;
+            let y = Math.random() * window.innerHeight;
+            
+            let container = scene.add.container(x, y);
+            
+            let dot = scene.add.circle(0, 0, 6, 0x00f2ff);
+            dot.setStrokeStyle(2, 0xffffff);
+            
+            // Свечение
+            let glow = scene.add.circle(0, 0, 15, 0x00f2ff, 0.3);
+            
+            let label = scene.add.text(0, 15, name, { fontSize: '12px', fontStyle: 'bold' }).setOrigin(0.5);
+            
+            container.add([glow, dot, label]);
+            
+            if (isMe) {
+                // Делаем свой узел перетаскиваемым
+                dot.setInteractive(new Phaser.Geom.Circle(0, 0, 20), Phaser.Geom.Circle.Contains);
+                scene.input.setDraggable(dot);
+                
+                scene.input.on('drag', (pointer, gameObject, dragX, dragY) => {
+                    container.x = pointer.x;
+                    container.y = pointer.y;
+                    broadcastPosition(container.x, container.y);
+                });
+
+                // Каждые 100мс шлем позицию всем
+                setInterval(() => broadcastPosition(container.x, container.y), 100);
+            }
+
+            nodes[id] = container;
+            updateNodeCount();
+        }
+
+        function updateOrCreateNode(id, name, x, y) {
+            if (!nodes[id]) {
+                createNode(id, name, false);
+            }
+            // Плавно перемещаем чужой узел
+            scene.tweens.add({
+                targets: nodes[id],
+                x: x, y: y,
+                duration: 100,
+                ease: 'Linear'
+            });
+        }
+
+        function broadcastPosition(x, y) {
+            // В идеале тут нужен список всех ID из базы.
+            // Для теста мы можем использовать широковещание, если сервер поддерживает, 
+            // или подключаться к тем, кого знаем.
+            Object.values(peer.connections).forEach(conns => {
+                conns.forEach(c => {
+                    if (c.open) c.send({ type: 'NODE_DATA', id: myId, name: currentUser, x: x, y: y });
+                });
+            });
+        }
+
+        function updateNodeCount() {
+            document.getElementById('peer-count').innerText = Object.keys(nodes).length;
+        }
+
+        function startGame() {
+            game = new Phaser.Game(phaserConfig);
+        }
+
+        window.onload = startGame;
+        window.onresize = () => { if(game) game.scale.resize(window.innerWidth, window.innerHeight); };
+
+    </script>
 </body>
 </html>
