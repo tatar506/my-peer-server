@@ -5,25 +5,24 @@ const { ExpressPeerServer } = require('peer');
 const app = express();
 const port = process.env.PORT || 9000;
 
-// Разрешаем запросы со всех адресов
-app.use(cors());
-// Включаем чтение JSON (вместо body-parser)
+// 1. Настройка CORS - разрешаем всё для всех
+app.use(cors({
+    origin: '*',
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(express.json());
 
-// База данных в памяти
+// 2. База данных
 let globalNodes = {};
 
-// Главная страница (чтобы видеть, что сервер работает)
-app.get('/', (req, res) => {
-    res.send('Mirix Aether Server is Running!');
-});
-
-// Получить список всех узлов
+// 3. Маршруты API (Должны быть ВЫШЕ PeerServer)
 app.get('/nodes', (req, res) => {
+    console.log("Запрос списка узлов");
     res.json(globalNodes);
 });
 
-// Сохранить позицию узла
 app.post('/nodes', (req, res) => {
     const node = req.body;
     if (node && node.name) {
@@ -37,29 +36,31 @@ app.post('/nodes', (req, res) => {
         };
         res.status(200).json({ success: true });
     } else {
-        res.status(400).json({ error: 'Missing name' });
+        res.status(400).json({ error: 'Invalid data' });
     }
 });
 
-// Запуск сервера
-const server = app.listen(port, () => {
-    console.log(`Server is listening on port ${port}`);
+app.get('/', (req, res) => {
+    res.send('Mirix Server is Active');
 });
 
-// Подключение PeerJS как части сервера Express
+// 4. Запуск сервера
+const server = app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
+});
+
+// 5. Настройка PeerServer на отдельный путь /peerjs
 const peerServer = ExpressPeerServer(server, {
     debug: true,
-    path: '/myapp'
+    path: '/' 
 });
 
-app.use('/', peerServer);
+// Монтируем PeerServer по пути /peerjs
+app.use('/peerjs', peerServer);
 
-// Логика отключения
 peerServer.on('disconnect', (client) => {
     const clientId = client.getId();
     Object.values(globalNodes).forEach(node => {
-        if (node.id === clientId) {
-            node.isOnline = false;
-        }
+        if (node.id === clientId) node.isOnline = false;
     });
 });
