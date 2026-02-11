@@ -5,16 +5,24 @@ const { ExpressPeerServer } = require('peer');
 const app = express();
 const port = process.env.PORT || 9000;
 
+// Настройка CORS: разрешаем запросы с любого домена (включая твой GitHub Pages)
 app.use(cors());
 app.use(express.json());
 
+// Хранилище узлов в памяти сервера
 let globalNodes = {};
 
-// База данных паутины
+// Главная страница для проверки
+app.get('/', (req, res) => {
+    res.send('Mirix Aether Server is Active');
+});
+
+// API для получения всех узлов (паутины)
 app.get('/nodes', (req, res) => {
     res.json(globalNodes);
 });
 
+// API для сохранения позиции узла
 app.post('/nodes', (req, res) => {
     const node = req.body;
     if (node && node.name) {
@@ -32,25 +40,33 @@ app.post('/nodes', (req, res) => {
     }
 });
 
-app.get('/', (req, res) => {
-    res.send('Mirix Server Running');
-});
-
+// Запуск сервера
 const server = app.listen(port, () => {
-    console.log(`Port: ${port}`);
+    console.log(`[Mirix] Server started on port: ${port}`);
 });
 
+// Настройка PeerJS сервера
 const peerServer = ExpressPeerServer(server, {
     debug: true,
-    path: '/'
+    path: '/', // Внутренний путь должен быть корневым
+    allow_discovery: true
 });
 
-// Доступ к P2P будет по адресу: твой-сайт.render.com/peerjs
+// Монтируем PeerJS по пути /peerjs
 app.use('/peerjs', peerServer);
 
+// Обработка событий подключения
+peerServer.on('connection', (client) => {
+    console.log(`[Mirix] Игрок подключился: ${client.getId()}`);
+});
+
+// Обработка событий отключения
 peerServer.on('disconnect', (client) => {
     const cid = client.getId();
+    console.log(`[Mirix] Игрок отключился: ${cid}`);
     Object.values(globalNodes).forEach(n => {
-        if (n.id === cid) n.isOnline = false;
+        if (n.id === cid) {
+            n.isOnline = false;
+        }
     });
 });
